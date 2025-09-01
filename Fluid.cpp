@@ -1,4 +1,5 @@
 #include "Fluid.h"
+#include <algorithm>
 
 Fluid::Fluid(int width, int height, int gravity,float density,float overrelax) {
     // give buffer for easy calculation later
@@ -99,7 +100,60 @@ void Fluid::applyIncompressibility(float dt, int tot_iter){
 }
 
 void Fluid::advect(float dt){
+    // use semi-lagrangian advection
+    
+    // Create local copies of velocity fields for reading while updating
+    float* u_new = new float[this->totCells];
+    float* v_new = new float[this->totCells];
+    
+    // Copy current velocity fields
+    std::copy(this->u, this->u + this->totCells, u_new);
+    std::copy(this->v, this->v + this->totCells, v_new);
+
+    int stride = this->height;
+    float half_cell = this->h/2;
+
+    for(int i = 1; i < this->width - 1; i++){
+        for(int j = 1; j < this->height - 1; j++){
+
+            // u 
+            if(this->s[i * stride + j] != 0 && this->s[(i-1) * stride + j] != 0){
+
+                // universal loc of the u vector given (i,j)
+                float x = i * this->h;
+                float y = j * this->h + half_cell;
+
+                float cur_u = this->u[i * stride + j];
+
+                // get interpolated velocity surrounding the u vector
+                float cur_v = (this->v[i * stride + j] + this->v[(i-1) * stride + j]+this->v[i * stride + (j+1)] + this->v[(i-1) * stride + (j+1)]) / 4;
+
+                // linear parametric backtracking to find old pos
+                x -= dt * cur_u;
+                y -= dt * cur_v;
+
+                //sampleField
+
+                this->u[i * stride + j] = cur_u;
+
+            
+
     
 
 
+                
+            }
+
+
+                
+
+
+        }
+    }
+
+
+    
+    // Clean up temporary arrays
+    delete[] u_new;
+    delete[] v_new;
 }
