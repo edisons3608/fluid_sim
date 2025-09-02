@@ -12,8 +12,14 @@ Fluid::Fluid(int width, int height, float gravity,float density,float overrelax)
     this->overrelax = overrelax;
     this->u = new float[this->totCells];
     this->v = new float[this->totCells];
-    this->s = new float[this->totCells];
+    this->s = new int[this->totCells];
     this->p = new float[this->totCells];
+    
+    // Allocate temporary arrays to avoid allocation in hot loops
+    this->temp_u = new float[this->totCells];
+    this->temp_v = new float[this->totCells];
+    this->temp_f = new float[this->totCells];
+    
     this->h = 1.0;
 }
 
@@ -22,6 +28,9 @@ Fluid::~Fluid() {
     delete[] this->v;
     delete[] this->s;
     delete[] this->p;
+    delete[] this->temp_u;
+    delete[] this->temp_v;
+    delete[] this->temp_f;
 }
 
 void Fluid::propagateGravity(float dt, float g) {
@@ -36,7 +45,7 @@ void Fluid::propagateGravity(float dt, float g) {
             // check cell above (i,j) and below (i,j-1) are free fluid.
             if (this->s[i * stride + j] != 0 && this->s[i * stride + j-1] != 0){
 
-                this->v[i * stride + j] = this->v[i * stride + j] + g * dt;
+                this->v[i * stride + j] -= g * dt;
 
             }
         }
@@ -76,9 +85,9 @@ void Fluid::applyIncompressibility(float dt, int tot_iter){
 
                         // solve based on poisson equation (but Gauss-Seidel method using iterated neighboring cells)
 
-                        this->u[i * stride + j] += p * s_left * this->overrelax;
+                        this->u[i * stride + j] -= p * s_left * this->overrelax;
                         this->u[(i+1) * stride + j] += p * s_right * this->overrelax;
-                        this->v[i * stride + j] += p * s_down * this->overrelax;
+                        this->v[i * stride + j] -= p * s_down * this->overrelax;
                         this->v[i * stride + j+1] += p * s_up * this->overrelax;
 
                         this->p[i * stride + j] += p * this->overrelax*this->density*this->h/dt;
@@ -100,6 +109,22 @@ void Fluid::applyIncompressibility(float dt, int tot_iter){
 
 }
 
+void Fluid::extrapolate() {
+    int stride = this->height;
+    
+    // Extrapolate u field
+    for (int i = 0; i < this->width; i++) {
+        this->u[i * stride + 0] = this->u[i * stride + 1];
+        this->u[i * stride + this->height - 1] = this->u[i * stride + this->height - 2];
+    }
+    
+    // Extrapolate v field
+    for (int j = 0; j < this->height; j++) {
+        this->v[0 * stride + j] = this->v[1 * stride + j];
+        this->v[(this->width - 1) * stride + j] = this->v[(this->width - 2) * stride + j];
+    }
+}
+
 float Fluid::interpolateComponent(float x, float y, std::string vec_type){
     int stride = this->height;
 
@@ -112,8 +137,8 @@ float Fluid::interpolateComponent(float x, float y, std::string vec_type){
     float dx = 0;
     float dy = 0;
 
-    // Create new float array of size totCells
-    float* f = new float[this->totCells];
+    // Use pre-allocated temp array instead of allocating new memory
+    float* f = this->temp_f;
 
     if(vec_type == "u"){
         std::copy(this->u, this->u + this->totCells, f);
@@ -147,9 +172,6 @@ float Fluid::interpolateComponent(float x, float y, std::string vec_type){
 
     float interpolated_value = w_left * w_down * f[x0 * stride + y0] + w_right * w_down * f[x1 * stride + y0] + w_right * w_up * f[x1 * stride + y1] + w_left * w_up * f[x0 * stride + y1];
 
-    // Clean up the temp array
-    delete[] f;
-    
     return interpolated_value;
 }
 
@@ -158,9 +180,9 @@ float Fluid::interpolateComponent(float x, float y, std::string vec_type){
 void Fluid::advect(float dt){
     // use semi-lagrangian advection
     
-    // Create local copies of velocity fields for reading while updating
-    float* u_new = new float[this->totCells];
-    float* v_new = new float[this->totCells];
+    // Use pre-allocated temporary arrays instead of allocating new ones
+    float* u_new = this->temp_u;
+    float* v_new = this->temp_v;
     
     // Copy current velocity fields
     std::copy(this->u, this->u + this->totCells, u_new);
@@ -230,22 +252,39 @@ void Fluid::advect(float dt){
     // copy the new velocity fields to the old velocity fields
     std::copy(u_new, u_new + this->totCells, this->u);
     std::copy(v_new, v_new + this->totCells, this->v);
-
-
-    
-    // Clean up temporary arrays
-    delete[] u_new;
-    delete[] v_new;
 }
 
 void Fluid::simulate(float dt,int tot_iter,float g){
 
     this->propagateGravity(dt,g);
+    this->resetPressure();
     this->applyIncompressibility(dt,tot_iter);
+    this->extrapolate();
     this->advect(dt);
 
 }
 
 float* Fluid::getPressureField(){
     return this->p;
+}
+
+void Fluid::setFluid(int i, int j, int value){
+    this->s[i * this->height + j] = value;
+}
+
+void Fluid::activateFluid(){
+    for(int i = 0; i < this->width; i++){
+        for(int j = 0; j < this->height; j++){
+            this->s[i * this->height + j] = 1;
+        }
+    }
+
+}
+
+void Fluid::resetPressure(){
+    for(int i = 0; i < this->width; i++){
+        for(int j = 0; j < this->height; j++){
+            this->p[i * this->height + j] = 0;
+        }
+    }
 }

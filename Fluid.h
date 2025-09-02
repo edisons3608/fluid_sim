@@ -5,38 +5,39 @@
 
 class Fluid {
 private:
-    // Add your private members here
     int width;
     int height;
-    float gravity;
     int totCells;
-    float overrelax;
+    float gravity;
     float density;
+    float overrelax;
     float h;
-    float* u;  // velocity field x-component
-    float* v;  // velocity field y-component
-    float* s;  // scalar field
-    float* p;  // pressure field
-
-public:
-    // Constructor
-    Fluid(int width, int height, float gravity, float density, float overrelax);
     
-    // Destructor
+    float* u;
+    float* v;
+    int* s;
+    float* p;
+    
+    // Temporary arrays to avoid allocation in hot loops
+    float* temp_u;
+    float* temp_v;
+    float* temp_f;
+    
+public:
+    Fluid(int width, int height, float gravity, float density, float overrelax);
     ~Fluid();
     
-    // Methods
     void propagateGravity(float dt, float g);
-
     void applyIncompressibility(float dt, int tot_iter);
-
-    void advect(float dt);
-    
+    void extrapolate();
     float interpolateComponent(float x, float y, std::string vec_type);
-    
+    void advect(float dt);
     void simulate(float dt, int tot_iter, float g);
     
     float* getPressureField();
+    void setFluid(int i, int j, int value);
+    void activateFluid();
+    void resetPressure();
 };
 
 #endif // FLUID_H 
