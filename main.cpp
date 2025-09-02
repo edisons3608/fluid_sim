@@ -48,7 +48,10 @@ public:
 
 int main() {
     // Create window
-    sf::RenderWindow window(sf::VideoMode(sf::Vector2u(800, 600)), "Draggable Circle - SFML");
+
+    int width = 800;
+    int height = 600;
+    sf::RenderWindow window(sf::VideoMode(sf::Vector2u(width, height)), "Draggable Circle - SFML");
     window.setFramerateLimit(60);
 
     // Create draggable circle

@@ -143,19 +143,14 @@ float Fluid::interpolateComponent(float x, float y, std::string vec_type){
     float w_up = ((y - dy) - y0*this->h)/this->h;
 
     float w_left = 1-w_right;
-    float w_down = 1-w_down;
+    float w_down = 1-w_up;
 
     float interpolated_value = w_left * w_down * f[x0 * stride + y0] + w_right * w_down * f[x1 * stride + y0] + w_right * w_up * f[x1 * stride + y1] + w_left * w_up * f[x0 * stride + y1];
 
-    return interpolated_value;
-
-
-
-    
     // Clean up the temp array
     delete[] f;
     
-    return 0.0f; // Placeholder return value
+    return interpolated_value;
 }
 
 
@@ -178,6 +173,8 @@ void Fluid::advect(float dt){
         for(int j = 1; j < this->height - 1; j++){
 
             // u 
+
+            //if above and below are boundary, don't advect
             if(this->s[i * stride + j] != 0 && this->s[(i-1) * stride + j] != 0){
 
                 // universal loc of the u vector given (i,j)
@@ -200,15 +197,16 @@ void Fluid::advect(float dt){
                 
             }
             // v 
-            if(this->s[i * stride + j] != 0 && this->s[(i-1) * stride + j] != 0){
+            //if left and right are boundary, don't advect
+            if(this->s[i * stride + j] != 0 && this->s[i * stride + (j-1)] != 0){
 
-                // universal loc of the u vector given (i,j)
+                // universal loc of the v vector given (i,j)
                 float x = i * this->h + half_cell;
                 float y = j * this->h;
 
                 float cur_v = this->v[i * stride + j];
 
-                // get interpolated velocity surrounding the u vector
+                // get interpolated velocity surrounding the v vector
                 float cur_u = (this->u[i*stride + j-1] + this->u[i*stride+j] + this->u[(i+1)*stride+j-1] + this->u[(i+1)*stride+j])/4;
 
                 // linear parametric backtracking to find old pos
@@ -238,4 +236,16 @@ void Fluid::advect(float dt){
     // Clean up temporary arrays
     delete[] u_new;
     delete[] v_new;
+}
+
+void Fluid::simulate(float dt,int tot_iter,float g){
+
+    this->propagateGravity(dt,g);
+    this->applyIncompressibility(dt,tot_iter);
+    this->advect(dt);
+
+}
+
+float* Fluid::getPressureField(){
+    return this->p;
 }

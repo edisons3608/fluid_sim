@@ -33,6 +33,10 @@ public:
     void advect(float dt);
     
     float interpolateComponent(float x, float y, std::string vec_type);
+    
+    void simulate(float dt, int tot_iter, float g);
+    
+    float* getPressureField();
 };
 
 #endif // FLUID_H 
