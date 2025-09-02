@@ -14,11 +14,22 @@ Fluid::Fluid(int width, int height, float gravity,float density,float overrelax)
     this->v = new float[this->totCells];
     this->s = new int[this->totCells];
     this->p = new float[this->totCells];
+    this->m = new float[this->totCells];
     
     // Allocate temporary arrays to avoid allocation in hot loops
     this->temp_u = new float[this->totCells];
     this->temp_v = new float[this->totCells];
     this->temp_f = new float[this->totCells];
+    this->temp_m = new float[this->totCells];
+    
+    // Initialize all fields to zero
+    for(int i = 0; i < this->totCells; i++) {
+        this->u[i] = 0.0f;
+        this->v[i] = 0.0f;
+        this->s[i] = 0;
+        this->p[i] = 0.0f;
+        this->m[i] = 0.0f;
+    }
     
     this->h = 1.0;
 }
@@ -28,9 +39,11 @@ Fluid::~Fluid() {
     delete[] this->v;
     delete[] this->s;
     delete[] this->p;
+    delete[] this->m;
     delete[] this->temp_u;
     delete[] this->temp_v;
     delete[] this->temp_f;
+    delete[] this->temp_m;
 }
 
 void Fluid::propagateGravity(float dt, float g) {
@@ -149,7 +162,7 @@ float Fluid::interpolateComponent(float x, float y, std::string vec_type){
         dx=half_cell;
     }
     else if(vec_type == "s"){
-        std::copy(this->s, this->s + this->totCells, f);
+        std::copy(this->m, this->m + this->totCells, f);
         dx=half_cell;
         dy=half_cell;
     }
@@ -254,6 +267,38 @@ void Fluid::advect(float dt){
     std::copy(v_new, v_new + this->totCells, this->v);
 }
 
+void Fluid::advectSmoke(float dt) {
+    // Use pre-allocated temporary array for smoke field
+    float* m_new = this->temp_m;
+    
+    // Copy current smoke field
+    std::copy(this->m, this->m + this->totCells, m_new);
+    
+    int stride = this->height;
+    float h2 = 0.5f * this->h;
+    
+    for (int i = 1; i < this->width - 1; i++) {
+        for (int j = 1; j < this->height - 1; j++) {
+            if (this->s[i * stride + j] != 0) {
+                // Get velocity at cell center by averaging neighboring velocity components
+                //u stored at left of cell, v stored at bottom of cell
+                float u = (this->u[i * stride + j] + this->u[(i+1) * stride + j]) * 0.5f;
+                float v = (this->v[i * stride + j] + this->v[i * stride + j+1]) * 0.5f;
+                
+                // Calculate position to sample from (backtracking)
+                float x = i * this->h + h2 - dt * u;
+                float y = j * this->h + h2 - dt * v;
+                
+                // Sample smoke field at the backtracked position using interpolateComponent
+                m_new[i * stride + j] = this->interpolateComponent(x, y, "s");
+            }
+        }
+    }
+    
+    // Copy the new smoke field to the old smoke field
+    std::copy(m_new, m_new + this->totCells, this->m);
+}
+
 void Fluid::simulate(float dt,int tot_iter,float g){
 
     this->propagateGravity(dt,g);
@@ -261,6 +306,7 @@ void Fluid::simulate(float dt,int tot_iter,float g){
     this->applyIncompressibility(dt,tot_iter);
     this->extrapolate();
     this->advect(dt);
+    this->advectSmoke(dt);
 
 }
 
@@ -287,4 +333,20 @@ void Fluid::resetPressure(){
             this->p[i * this->height + j] = 0;
         }
     }
+}
+
+float* Fluid::getSmokeField(){
+    return this->m;
+}
+
+void Fluid::setSmoke(int i, int j, float value){
+    this->m[i * this->height + j] = value;
+}
+
+void Fluid::setU(int i, int j, float value){
+    this->u[i * this->height + j] = value;
+}
+
+void Fluid::setV(int i, int j, float value){
+    this->v[i * this->height + j] = value;
 }

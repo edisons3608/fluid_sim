@@ -80,11 +80,15 @@ sf::Color getScientificColor(float val, float minVal, float maxVal) {
 
 
 int main() {
+    std::cout << "Starting FluidSim..." << std::endl;
+    
     // Create window
     int width = 100;  // Reduced from 800
     int height = 100; // Reduced from 600
     sf::RenderWindow window(sf::VideoMode(sf::Vector2u(800, 600)), "Draggable Circle - SFML");
     window.setFramerateLimit(60);
+    
+    std::cout << "Window created successfully" << std::endl;
 
     // Create fluid simulation
     float g = 9.81f;
@@ -104,11 +108,28 @@ int main() {
             }
         }
     }
+    
+    // Initialize smoke field
+    for(int i = 0; i < width + 2; i++) {
+        for(int j = 0; j < height + 2; j++) {
+            fluid_main->setSmoke(i, j, 0.0f); // Initialize all cells with no smoke
+        }
+    }
+    
+    
+    
+    // Initialize smoke source and inflow velocity at left edge
+    for(int j = 40; j < 60; j++) {
+        fluid_main->setSmoke(1, j, 1.0f); // Set smoke density to 1.0 at inflow
+        fluid_main->setU(1, j, 40.0f); // Set inflow velocity to 20.0 at inflow
+    }
 
     // Create draggable circle
     DraggableCircle circle(30.0f, sf::Vector2f(400, 300), sf::Color::Red);
 
     // Main loop
+    int frame = 0;
+    std::cout << "Entering main loop..." << std::endl;
     while (window.isOpen()) {
         while (auto event = window.pollEvent()) {
             // Window closed
@@ -143,12 +164,26 @@ int main() {
 
         // Comment out line 144:
         // fluid_main->activateFluid();
-
+        for(int j = 40; j < 60; j++) {
+            fluid_main->setSmoke(1, j, 1.0f); // Set smoke density to 1.0 at inflow
+            fluid_main->setU(1, j, 40.0f); // Set inflow velocity to 20.0 at inflow
+        }
         // Update fluid simulation frame by frame
         fluid_main->simulate(1.0f/60.0f, 20, g);
+        frame++;
         
-        // Get pressure field for visualization
+        // Get pressure field and smoke field for visualization
         float* pressureField = fluid_main->getPressureField();
+        float* smokeField = fluid_main->getSmokeField();
+        
+        // Debug: Check smoke values at inflow
+        if (frame == 0) {
+            std::cout << "Initial smoke values at inflow:" << std::endl;
+            for(int j = 40; j < 60; j++) {
+                int index = 1 * (height + 2) + j;
+                std::cout << "Smoke[" << 1 << "," << j << "] = " << smokeField[index] << std::endl;
+            }
+        }
         
         
         // Clear window
@@ -195,11 +230,19 @@ int main() {
             for (int j = 1; j < height + 1; j++) {
                 int index = i * (height + 2) + j;  // Fix indexing to match Fluid class
                 float pressure = pressureField[index];
+                float smoke = smokeField[index];
                 
                 sf::RectangleShape cell;
                 cell.setSize(sf::Vector2f(cellWidth, cellHeight));
                 cell.setPosition(sf::Vector2f((i-1) * cellWidth, (j-1) * cellHeight));
-                cell.setFillColor(getScientificColor(pressure, minPressure, maxPressure));
+                
+                // Blend smoke (white) with pressure color
+                sf::Color pressureColor = getScientificColor(pressure, minPressure, maxPressure);
+                uint8_t r = static_cast<uint8_t>(pressureColor.r * (smoke) + 255 * (1.0f - smoke));
+                uint8_t g = static_cast<uint8_t>(pressureColor.g * (smoke) + 255 * (1.0f - smoke));
+                uint8_t b = static_cast<uint8_t>(pressureColor.b * (smoke) + 255 * (1.0f - smoke));
+                
+                cell.setFillColor(sf::Color(r, g, b));
                 window.draw(cell);
             }
         }
