@@ -16,13 +16,11 @@ Fluid::Fluid(int width, int height, float gravity,float density,float overrelax)
     this->p = new float[this->totCells];
     this->m = new float[this->totCells];
     
-    // Allocate temporary arrays to avoid allocation in hot loops
     this->temp_u = new float[this->totCells];
     this->temp_v = new float[this->totCells];
     this->temp_f = new float[this->totCells];
     this->temp_m = new float[this->totCells];
     
-    // Initialize all fields to zero
     for(int i = 0; i < this->totCells; i++) {
         this->u[i] = 0.0f;
         this->v[i] = 0.0f;
@@ -150,7 +148,7 @@ float Fluid::interpolateComponent(float x, float y, std::string vec_type){
     float dx = 0;
     float dy = 0;
 
-    // Use pre-allocated temp array instead of allocating new memory
+    //temp array to avoid allocation repetition
     float* f = this->temp_f;
 
     if(vec_type == "u"){
@@ -193,11 +191,9 @@ float Fluid::interpolateComponent(float x, float y, std::string vec_type){
 void Fluid::advect(float dt){
     // use semi-lagrangian advection
     
-    // Use pre-allocated temporary arrays instead of allocating new ones
     float* u_new = this->temp_u;
     float* v_new = this->temp_v;
     
-    // Copy current velocity fields
     std::copy(this->u, this->u + this->totCells, u_new);
     std::copy(this->v, this->v + this->totCells, v_new);
 
@@ -262,16 +258,13 @@ void Fluid::advect(float dt){
         }
     }
 
-    // copy the new velocity fields to the old velocity fields
     std::copy(u_new, u_new + this->totCells, this->u);
     std::copy(v_new, v_new + this->totCells, this->v);
 }
 
 void Fluid::advectSmoke(float dt) {
-    // Use pre-allocated temporary array for smoke field
     float* m_new = this->temp_m;
     
-    // Copy current smoke field
     std::copy(this->m, this->m + this->totCells, m_new);
     
     int stride = this->height;
@@ -295,7 +288,6 @@ void Fluid::advectSmoke(float dt) {
         }
     }
     
-    // Copy the new smoke field to the old smoke field
     std::copy(m_new, m_new + this->totCells, this->m);
 }
 
@@ -316,6 +308,17 @@ float* Fluid::getPressureField(){
 
 void Fluid::setFluid(int i, int j, int value){
     this->s[i * this->height + j] = value;
+    
+    // If setting as solid boundary, also set velocity to zero
+    if (value == 0) {
+        int stride = this->height;
+        // Set u velocity to zero (stored at left edge of cell)
+        this->u[i * stride + j] = 0.0f;
+        // Set v velocity to zero (stored at bottom edge of cell)
+        this->v[i * stride + j] = 0.0f;
+        // Also set smoke to zero at solid boundaries
+        this->m[i * stride + j] = 0.0f;
+    }
 }
 
 void Fluid::activateFluid(){
