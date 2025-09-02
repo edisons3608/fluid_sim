@@ -57,7 +57,7 @@ public:
     
 };
 
-// Scientific color mapping function (like the reference)
+// Scientific color mapping function
 sf::Color getScientificColor(float val, float minVal, float maxVal) {
     val = std::max(minVal, std::min(maxVal - 0.0001f, val));
     float d = maxVal - minVal;
@@ -116,7 +116,7 @@ int main() {
     // Initialize smoke field
     for(int i = 0; i < width + 2; i++) {
         for(int j = 0; j < height + 2; j++) {
-            fluid_main->setSmoke(i, j, 0.0f); // Initialize all cells with no smoke
+            fluid_main->setSmoke(i, j, 0.0f); // maybe wrap in function in Fluid.cpp later...
         }
     }
     
@@ -237,10 +237,8 @@ int main() {
         }
         
         
-        // Clear window
         window.clear(sf::Color::White);
 
-        // Scientific color mapping function (like the reference)
         auto getScientificColor = [](float val, float minVal, float maxVal) -> sf::Color {
             val = std::max(minVal, std::min(maxVal - 0.0001f, val));
             float d = maxVal - minVal;
