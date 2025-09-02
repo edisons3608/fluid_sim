@@ -1,23 +1,11 @@
 # Fluid Simulation
 
-A 2D fluid simulation built with C++ and SFML, showing  smoke visualization ontop pressure field rendering.
+A 2D fluid simulation built with C++ and SFML, showing smoke visualization overlaid on a pressure field rendering.
 
-## Features
+# Preview
+![Fluid Simulation Preview](assets/pre.gif)
 
-- **Real-time fluid dynamics simulation** using a grid-based approach
-- **Interactive smoke visualization** with inflow/outflow conditions
-- **Pressure field rendering** using scientific color mapping (blue → cyan → green → yellow → red)
-- **Draggable boundary objects** that affect fluid flow
-- **Configurable simulation parameters** (gravity, density, overrelaxation)
-- **Efficient grid-based algorithms** for fluid propagation and incompressibility
 
-## Screenshots
-
-The simulation displays:
-- **Smoke field**: White smoke particles flowing from left to right
-- **Pressure field**: Color-coded pressure visualization using scientific color mapping
-- **Interactive boundaries**: Draggable circular objects that create solid boundaries
-- **Real-time updates**: 30 FPS simulation with continuous fluid flow
 
 ## Reqs
 
@@ -41,61 +29,32 @@ The simulation uses these default parameters:
 - **Grid size**: 100x100 cells
 - **Gravity**: 9.81 m/s²
 - **Density**: 1.0 kg/m³
-- **Overrelaxation**: 1.9 (for faster convergence)
-- **Time step**: 1/60 second
-- **Iterations**: 20 pressure solver iterations per frame
+- **Successive Over-Relaxation ("overrelaxation")**: 1.9 (for faster convergence)
+- **Time step**: 1/60 second (per frame)
+- **Iterations**: 20 pressure solver iterations per frame (for Gauss-Seidel)
 
 
 ## Technical Details
 
 ### Fluid Simulation Algorithm
-The simulation implements:
-- **Grid-based fluid dynamics** using staggered grid layout
-- **Pressure projection** for incompressibility
-- **Advection** for fluid and smoke transport
-- **Boundary handling** for solid obstacles
-- **Gravity effects** on fluid motion
 
-### Rendering
-- **SFML graphics** for real-time visualization
-- **Scientific color mapping** for pressure field display
-- **Smoke blending** with pressure colors for efficient rendering
-- **Grid-based cell rendering** for performance
+The simulation implements a basic Eulerian fluid simulator. 
 
-### Performance
-- **Optimized grid operations** with minimal memory allocation
-- **Configurable iteration counts** for pressure solver
-- **Efficient color mapping** algorithms
-- **30 FPS target** for smooth real-time simulation
+Assumptions
+- The fluid is inviscid.
+- The fluid is incompresible.
 
-## Troubleshooting
+A staggered grid is applied to store horizontal (u) and vertical (v) velocity components. 
 
-### Common Issues
+The process is as follows:
 
-1. **SFML not found**:
-   ```bash
-   # Ensure SFML is installed and linked correctly
-   brew install sfml
-   # Check SFML installation path
-   brew --prefix sfml
-   ```
+1. **Applying gravity condition** across all vertical components across a defined ```dt```.
+2. **Projection for incompressibility** (systems are solved via Gauss-Seidel method with SOC acceleration)
+3. **Advection** (using semi-LaGrangian advection)
 
-2. **Build errors**:
-   ```bash
-   # Clean and rebuild
-   make clean
-   make
-   ```
 
-3. **Runtime errors**:
-   - Ensure SFML libraries are in your library path
-   - Check that the executable has proper permissions
+Smoke advection is utilized for visualization; the calculation is essentially the same as the velocity advection process.
 
-### Debug Information
-The simulation outputs debug information to the console:
-- Initialization status
-- Smoke values at inflow boundaries
-- Build and window creation confirmations
 
 ## License
 
