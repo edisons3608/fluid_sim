@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <string>
 
-Fluid::Fluid(int width, int height, int gravity,float density,float overrelax) {
+Fluid::Fluid(int width, int height, float gravity,float density,float overrelax) {
     // give buffer for easy calculation later
     this->width = width + 2;
     this->height = height + 2;

@@ -20,7 +20,7 @@ private:
 
 public:
     // Constructor
-    Fluid(int width, int height, int gravity, float density, float overrelax);
+    Fluid(int width, int height, float gravity, float density, float overrelax);
     
     // Destructor
     ~Fluid();
