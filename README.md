@@ -29,7 +29,7 @@ The simulation uses these default parameters:
 - **Grid size**: 100x100 cells
 - **Gravity**: 9.81 m/s²
 - **Density**: 1.0 kg/m³
-- **Successive Over-Relaxation ("overrelaxation")**: 1.9 (for faster convergence)
+- **Successive Over-Relaxation (SOR)**: 1.9 (for faster convergence)
 - **Time step**: 1/60 second (per frame)
 - **Iterations**: 20 pressure solver iterations per frame (for Gauss-Seidel)
 
@@ -49,16 +49,46 @@ A staggered grid is applied to store horizontal (u) and vertical (v) velocity co
 The process is as follows:
 
 1. **Applying gravity condition** across all vertical components across a defined ```dt```.
-2. **Projection for incompressibility** (systems are solved via Gauss-Seidel method with SOC acceleration)
+   $$
+   v_f = v_i - g*dt
+   $$
+
+2. **Projection for incompressibility** (systems are solved via Gauss-Seidel method with SOR acceleration).
+
+   Here, outward flux is described as positive.
+   $$
+   \omega = 1.9
+   $$
+   $$
+   d = \omega(u_{i+1,j}-u_{i,j}+v_{i,j+1}-v_{i,j})
+   $$
+
+   To achieve incompressibiliy for each cell ($div=0$), the net divergence is equally in all non-boundary directions.
+
+   The pressure projection is also calculated via
+   $$
+   p_f = p_i + \frac{\rho \, h}{dt} \cdot \frac{-d}{s}
+   $$
+   to approximate the Poisson equation for pressure
+   $$
+   \nabla^2 p \;=\; \frac{\rho}{\Delta t} \, \nabla \cdot u
+   $$
+
 3. **Advection** (using semi-LaGrangian advection)
+   Backtrace from the current face position (vector x represents any vector u or v)
+   $$
+   x_{\text{prev}} \;=\; x - \Delta t \, v(i,j)
+   $$
+
+   Bilinearly interpolate from the old field and transfer velocity component
+   $$
+   u^{t+\Delta t}(\mathbf{x}) \;=\; u^{t}(\mathbf{x}_{\text{prev}})
+   $$
 
 
-Smoke advection is utilized for visualization; the calculation is essentially the same as the velocity advection process.
+   Smoke advection is utilized for visualization; the calculation is essentially the same as the velocity advection process.
 
 
-## License
-
-add MIT license later
 
 ## Acknowledgments
 
