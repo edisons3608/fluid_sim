@@ -1,5 +1,6 @@
 #include "Fluid.h"
 #include <algorithm>
+#include <string>
 
 Fluid::Fluid(int width, int height, int gravity,float density,float overrelax) {
     // give buffer for easy calculation later
@@ -99,6 +100,66 @@ void Fluid::applyIncompressibility(float dt, int tot_iter){
 
 }
 
+float Fluid::interpolateComponent(float x, float y, std::string vec_type){
+    int stride = this->height;
+
+    float half_cell = this->h/2;
+
+    // bounding with ghost cells
+    x = std::max(std::min(x, this->width * this->h), this->h);
+    y = std::max(std::min(y, this->height * this->h), this->h);
+
+    float dx = 0;
+    float dy = 0;
+
+    // Create new float array of size totCells
+    float* f = new float[this->totCells];
+
+    if(vec_type == "u"){
+        std::copy(this->u, this->u + this->totCells, f);
+        dy=half_cell;
+    }
+    else if(vec_type == "v"){
+        std::copy(this->v, this->v + this->totCells, f);
+        dx=half_cell;
+    }
+    else if(vec_type == "s"){
+        std::copy(this->s, this->s + this->totCells, f);
+        dx=half_cell;
+        dy=half_cell;
+    }
+    else{
+        return 0.0f;
+    }
+
+    // create bounding box for interpolation
+    int x0 = std::min(static_cast<int>(std::floor((x - dx)/this->h)), this->width-1);
+    int x1 = std::min(x0 + 1, this->width-1);
+
+    int y0 = std::min(static_cast<int>(std::floor((y - dy)/this->h)), this->height-1); 
+    int y1 = std::min(y0 + 1, this->height-1);
+
+    float w_right = ((x - dx) - x0*this->h)/this->h;
+    float w_up = ((y - dy) - y0*this->h)/this->h;
+
+    float w_left = 1-w_right;
+    float w_down = 1-w_down;
+
+    float interpolated_value = w_left * w_down * f[x0 * stride + y0] + w_right * w_down * f[x1 * stride + y0] + w_right * w_up * f[x1 * stride + y1] + w_left * w_up * f[x0 * stride + y1];
+
+    return interpolated_value;
+
+
+
+    
+    // Clean up the temp array
+    delete[] f;
+    
+    return 0.0f; // Placeholder return value
+}
+
+
+
 void Fluid::advect(float dt){
     // use semi-lagrangian advection
     
@@ -132,24 +193,45 @@ void Fluid::advect(float dt){
                 x -= dt * cur_u;
                 y -= dt * cur_v;
 
-                //sampleField
+                cur_u = this->interpolateComponent(x,y,"u");
 
-                this->u[i * stride + j] = cur_u;
+                u_new[i * stride + j] = cur_u;
 
-            
+                
+            }
+            // v 
+            if(this->s[i * stride + j] != 0 && this->s[(i-1) * stride + j] != 0){
 
-    
+                // universal loc of the u vector given (i,j)
+                float x = i * this->h + half_cell;
+                float y = j * this->h;
 
+                float cur_v = this->v[i * stride + j];
+
+                // get interpolated velocity surrounding the u vector
+                float cur_u = (this->u[i*stride + j-1] + this->u[i*stride+j] + this->u[(i+1)*stride+j-1] + this->u[(i+1)*stride+j])/4;
+
+                // linear parametric backtracking to find old pos
+                x -= dt * cur_u;
+                y -= dt * cur_v;
+
+                cur_v = this->interpolateComponent(x,y,"v");
+
+                v_new[i * stride + j] = cur_v;
 
                 
             }
 
 
-                
 
+                
 
         }
     }
+
+    // copy the new velocity fields to the old velocity fields
+    std::copy(u_new, u_new + this->totCells, this->u);
+    std::copy(v_new, v_new + this->totCells, this->v);
 
 
     

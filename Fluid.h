@@ -1,6 +1,8 @@
 #ifndef FLUID_H
 #define FLUID_H
 
+#include <string>
+
 class Fluid {
 private:
     // Add your private members here
@@ -18,7 +20,7 @@ private:
 
 public:
     // Constructor
-    Fluid(int width, int height, int gravity);
+    Fluid(int width, int height, int gravity, float density, float overrelax);
     
     // Destructor
     ~Fluid();
@@ -29,6 +31,8 @@ public:
     void applyIncompressibility(float dt, int tot_iter);
 
     void advect(float dt);
+    
+    float interpolateComponent(float x, float y, std::string vec_type);
 };
 
 #endif // FLUID_H 
