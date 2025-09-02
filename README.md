@@ -42,7 +42,7 @@ The simulation implements a basic Eulerian fluid simulator.
 
 Assumptions
 - The fluid is inviscid.
-- The fluid is incompresible.
+- The fluid is incompressible.
 
 A staggered grid is applied to store horizontal (u) and vertical (v) velocity components. 
 
@@ -70,7 +70,7 @@ The process is as follows:
 
    ![nabla^2 p = (rho/Delta t) * nabla * u](https://latex.codecogs.com/svg.latex?%5Cnabla%5E2%20p%20%3D%20%5Cfrac%7B%5Crho%7D%7B%5CDelta%20t%7D%20%5C%2C%20%5Cnabla%20%5Ccdot%20u)
 
-3. **Advection** (using semi-LaGrangian advection)
+3. **Advection** (using semi-Lagrangian advection)
    Backtrace from the current face position (vector x represents any vector u or v)
 
    ![x_prev = x - Delta t * v(i,j)](https://latex.codecogs.com/svg.latex?x_%7B%5Ctext%7Bprev%7D%7D%20%3D%20x%20-%20%5CDelta%20t%20%5C%2C%20v%28i%2Cj%29)
