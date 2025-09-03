@@ -57,30 +57,6 @@ public:
     
 };
 
-// Scientific color mapping function
-sf::Color getScientificColor(float val, float minVal, float maxVal) {
-    val = std::max(minVal, std::min(maxVal - 0.0001f, val));
-    float d = maxVal - minVal;
-    val = (d == 0.0f) ? 0.5f : (val - minVal) / d;
-    
-    float m = 0.25f;
-    int num = static_cast<int>(val / m);
-    float s = (val - num * m) / m;
-    float r, g, b;
-    
-    switch (num) {
-        case 0: r = 0.0f; g = s; b = 1.0f; break;      // Blue to Cyan
-        case 1: r = 0.0f; g = 1.0f; b = 1.0f - s; break; // Cyan to Green
-        case 2: r = s; g = 1.0f; b = 0.0f; break;      // Green to Yellow
-        case 3: r = 1.0f; g = 1.0f - s; b = 0.0f; break; // Yellow to Red
-    }
-    
-    return sf::Color(
-        static_cast<uint8_t>(255 * r),
-        static_cast<uint8_t>(255 * g),
-        static_cast<uint8_t>(255 * b)
-    );
-}
 
 
 int main() {
@@ -121,36 +97,9 @@ int main() {
     }
     
     
-    
-    // Initialize smoke source and inflow velocity at left edge
-    for(int j = 40; j < 60; j++) {
-        fluid_main->setSmoke(1, j, 1.0f); // 100% density
-        fluid_main->setU(1, j, 40.0f); 
-    }
 
     // Create draggable circle
     DraggableCircle circle(30.0f, sf::Vector2f(400, 300), sf::Color::Red);
-
-    // Set circle area as solid boundary in fluid simulation
-    // Convert circle position from screen coordinates to grid coordinates
-    float circleCenterX = circle.getPosition().x / 8.0f;  // cellWidth = 8.0f
-    float circleCenterY = circle.getPosition().y / 6.0f;  // cellHeight = 6.0f
-    float circleRadius = circle.getRadius() / 8.0f;       // Approximate radius in grid units
-    
-    // Set all cells within the circle as solid boundary
-    for(int i = 1; i < width + 1; i++) {
-        for(int j = 1; j < height + 1; j++) {
-            // Calculate distance from cell center to circle center
-            float dx = (i - 0.5f) - circleCenterX;
-            float dy = (j - 0.5f) - circleCenterY;
-            float distance = std::sqrt(dx*dx + dy*dy);
-            
-            // If cell is within circle radius, set as solid boundary
-            if (distance <= circleRadius) {
-                fluid_main->setFluid(i, j, 0);  // 0 = solid boundary
-            }
-        }
-    }
 
     // Main loop
     int frame = 0;
