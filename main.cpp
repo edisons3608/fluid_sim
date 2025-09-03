@@ -89,7 +89,7 @@ int main() {
     // Create window
     int width = 100;  
     int height = 100;
-    sf::RenderWindow window(sf::VideoMode(sf::Vector2u(800, 600)), "Draggable Circle - SFML");
+    sf::RenderWindow window(sf::VideoMode(sf::Vector2u(800, 600)), "Fluid Simulation");
     window.setFramerateLimit(30);
     
     std::cout << "Window created successfully" << std::endl;
